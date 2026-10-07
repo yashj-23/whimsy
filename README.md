@@ -2,7 +2,17 @@
 
 A grimoire of small, strange experiments for when you're stuck or bored. One app for your MacBook and your phone, installed from a web address, working offline, with everything stored only on the device.
 
-## Install it
+## Download
+
+Mac and Android apps are on the [Releases page](https://github.com/yashj-23/whimsy/releases/latest):
+
+- **Mac:** `Whimsy-…-Mac-AppleSilicon.dmg` (M-series chips) or `Whimsy-…-Mac-Intel.dmg`. Open it, drag Whimsy to Applications. The first launch needs System Settings › Privacy & Security › Open Anyway, because the app isn't notarized by Apple.
+- **Android:** `Whimsy-….apk`. Open it on the phone and allow installing from that source.
+- **iPhone:** install from the web address below (Safari › Share › Add to Home Screen).
+
+To publish a new version, raise `version` in `apps/desktop/package.json` (and `APP_VERSION` in `js/constants.js`) and push to `main`. The workflow builds both apps and creates the release.
+
+## Install it from the web
 
 Whimsy has to be served from an `https://` address once. After that it is installed like an app and runs offline.
 
