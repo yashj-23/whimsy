@@ -29,6 +29,13 @@ jobs:
   mac:
     needs: version
     runs-on: macos-latest
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            label: AppleSilicon
+          - arch: x64
+            label: Intel
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,11 +46,11 @@ jobs:
         run: npm ci
       - name: Copy in the app's files
         run: node tools/stage-web.mjs apps/desktop/web
-      - name: Build Whimsy.app (Apple Silicon and Intel)
+      - name: Build Whimsy.app
         working-directory: apps/desktop
         run: >
           npx @electron/packager . Whimsy
-          --platform=darwin --arch=universal
+          --platform=darwin --arch=${{ matrix.arch }}
           --icon=build/icon.icns
           --app-bundle-id=io.github.yashj23.whimsy
           --app-version=${{ needs.version.outputs.name }}
@@ -52,18 +59,18 @@ jobs:
           --ignore='^/out' --ignore='^/build'
       - name: Sign for local use
         run: |
-          APP="apps/desktop/out/Whimsy-darwin-universal/Whimsy.app"
+          APP="apps/desktop/out/Whimsy-darwin-${{ matrix.arch }}/Whimsy.app"
           codesign --force --deep --sign - "$APP"
           codesign --verify --deep --strict --verbose=2 "$APP"
       - name: Make the disk image
         run: |
           mkdir -p dmg
-          cp -R "apps/desktop/out/Whimsy-darwin-universal/Whimsy.app" dmg/
+          cp -R "apps/desktop/out/Whimsy-darwin-${{ matrix.arch }}/Whimsy.app" dmg/
           ln -s /Applications dmg/Applications
-          hdiutil create -volname "Whimsy" -srcfolder dmg -ov -format UDZO "Whimsy-${{ needs.version.outputs.name }}.dmg"
+          hdiutil create -volname "Whimsy" -srcfolder dmg -ov -format ULMO "Whimsy-${{ needs.version.outputs.name }}-Mac-${{ matrix.label }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
-          name: mac
+          name: mac-${{ matrix.arch }}
           path: Whimsy-*.dmg
 
   android:
@@ -123,11 +130,12 @@ jobs:
           files: dist/*
           body: |
             ### Mac
-            1. Download **Whimsy-${{ needs.version.outputs.name }}.dmg** and open it.
+            1. Download the disk image for your Mac and open it:
+               - **Whimsy-${{ needs.version.outputs.name }}-Mac-AppleSilicon.dmg** for M1, M2, M3, M4 or newer
+               - **Whimsy-${{ needs.version.outputs.name }}-Mac-Intel.dmg** for Intel Macs
+               (Not sure? Apple menu › About This Mac. "Chip: Apple M…" means Apple Silicon.)
             2. Drag **Whimsy** into **Applications**.
             3. The first time only: open Whimsy from Applications. macOS will say it can't check the app. Go to **System Settings › Privacy & Security**, scroll down, click **Open Anyway**, then **Open**.
-
-            Works on Apple Silicon and Intel Macs.
 
             ### Android
             1. On your phone, download **Whimsy-${{ needs.version.outputs.name }}.apk**.
