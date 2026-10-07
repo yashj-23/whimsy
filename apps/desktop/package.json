@@ -1,0 +1,17 @@
+{
+  "name": "whimsy",
+  "productName": "Whimsy",
+  "version": "1.0.0",
+  "description": "A grimoire of small, strange experiments for when you're stuck or bored.",
+  "main": "main.js",
+  "private": true,
+  "author": "yashj-23",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "node ../../tools/stage-web.mjs web && electron ."
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "44.6.0"
+  }
+}

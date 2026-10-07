@@ -1,5 +1,5 @@
 // Whimsy service worker: keeps the app working offline and installs updates when you choose.
-const CACHE = 'whimsy-3159a22a7b96';
+const CACHE = 'whimsy-a42a17bcbbde';
 const ASSETS = [
   "./",
   "./index.html",
@@ -16,6 +16,7 @@ const ASSETS = [
   "./js/engine.js",
   "./js/feel.js",
   "./js/icons.js",
+  "./js/native.js",
   "./js/screens/card.js",
   "./js/screens/home.js",
   "./js/screens/journal.js",

@@ -709,3 +709,11 @@ html[data-motion='reduce'] .flip { animation: none !important; }
   .running .run-actions { grid-template-columns: 1fr 1fr; }
   .running .run-actions .btn-ghost { grid-column: 1 / -1; }
 }
+
+/* ───────────── inside the Mac app: room for the window buttons ───────────── */
+.drag-strip { position: fixed; top: 0; left: 0; right: 0; height: 28px; z-index: 40; -webkit-app-region: drag; }
+html.native-mac .shell { padding-top: 26px; }
+html.native-mac .mobile-head { padding-top: 10px; }
+@media (min-width: 960px) {
+  html.native-mac .nav-side { top: 42px; height: calc(100dvh - 58px); }
+}

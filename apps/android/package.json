@@ -1,0 +1,19 @@
+{
+  "name": "whimsy-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Whimsy for Android (Capacitor)",
+  "scripts": {
+    "stage": "node ../../tools/stage-web.mjs www",
+    "sync": "npm run stage && npx cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/filesystem": "8.1.4",
+    "@capacitor/share": "8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3"
+  }
+}

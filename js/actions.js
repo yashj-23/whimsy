@@ -7,6 +7,7 @@ import {
 } from './engine.js';
 import { TEMP_CONTEXT_HOURS, MAX_PINS, TIMES, APP_VERSION, ADAPTS } from './constants.js';
 import { chime, shimmer, buzz, unlockAudio } from './feel.js';
+import { isNativeApp, isAndroidApp, shareFileAndroid } from './native.js';
 
 const HISTORY_MAX = 400;
 const NUDGES_MAX = 300;
@@ -113,6 +114,7 @@ function mergePrefs(p) {
 }
 
 export function isInstalled() {
+  if (isNativeApp) return true;
   try {
     return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
   } catch (e) { return false; }
@@ -581,7 +583,19 @@ export async function prepareBackup() {
   const touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
   let canShare = false;
   try { canShare = !!(touch && file && navigator.canShare && navigator.canShare({ files: [file] })); } catch (e) { canShare = false; }
-  return { name, blob, file, canShare, size: blob.size, sessions: data.sessions.length, photos: data.photos.length };
+  return { name, blob, json, file, canShare, android: isAndroidApp, size: blob.size, sessions: data.sessions.length, photos: data.photos.length };
+}
+
+// Android app: hand the file to the system share sheet straight away.
+export async function shareBackupAndroid(b) {
+  try {
+    const shared = await shareFileAndroid(b.name, b.json);
+    if (shared) backupDone('Backup saved');
+    return shared;
+  } catch (e) {
+    toast("The backup couldn't be shared. Try again.");
+    return false;
+  }
 }
 
 export function downloadBackup(b) {

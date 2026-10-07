@@ -17,7 +17,8 @@ export function BackupButton({ label = 'Back up', className = 'btn btn-soft', si
     setBusy(true);
     try {
       const b = await act.prepareBackup();
-      if (b.canShare) setReady(b);
+      if (b.android) await act.shareBackupAndroid(b);
+      else if (b.canShare) setReady(b);
       else act.downloadBackup(b);
     } catch (e) {
       act.toast("The backup couldn't be made. Try again.");

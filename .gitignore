@@ -1,2 +1,12 @@
 .DS_Store
 node_modules/
+apps/*/node_modules/
+apps/desktop/web/
+apps/desktop/out/
+apps/android/www/
+apps/android/android/app/src/main/assets/public/
+apps/android/android/app/src/main/assets/capacitor.config.json
+apps/android/android/app/src/main/assets/capacitor.plugins.json
+apps/android/android/capacitor-cordova-android-plugins/
+*.keystore
+*.p12

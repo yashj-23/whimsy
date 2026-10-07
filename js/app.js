@@ -2,6 +2,7 @@ import { html, render, useEffect } from './vendor/preact-htm.js';
 import { useApp, get, set } from './state.js';
 import * as act from './actions.js';
 import { Icon } from './icons.js';
+import { isNativeApp, isMacApp } from './native.js';
 import { Home } from './screens/home.js';
 import { DrawScreen } from './screens/card.js';
 import { Running } from './screens/session.js';
@@ -112,6 +113,7 @@ function applyUpdate() {
 }
 
 function setupServiceWorker() {
+  if (isNativeApp) return; // the Mac and Android apps carry their files inside; no offline cache needed
   if (!('serviceWorker' in navigator)) return;
   if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
   let reloading = false;
@@ -141,6 +143,15 @@ window.addEventListener('pageshow', () => act.expireTemporaryContext());
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') act.expireTemporaryContext();
 });
+
+if (isNativeApp) document.documentElement.classList.add('native-app');
+if (isMacApp) {
+  document.documentElement.classList.add('native-mac');
+  const strip = document.createElement('div');
+  strip.className = 'drag-strip';
+  strip.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(strip);
+}
 
 render(html`<${App}/>`, document.getElementById('app'));
 act.boot();

@@ -1,0 +1,139 @@
+name: Build Mac and Android apps
+
+# Push a tag like v1.0.1 to build both apps and publish them on the Releases page.
+# "Run workflow" on the Actions tab builds them without publishing (download from the run).
+on:
+  push:
+    tags: ['v*']
+    branches: [main]
+    paths: ['apps/**', 'js/**', 'css/**', 'index.html', '.github/workflows/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.v.outputs.name }}
+      code: ${{ steps.v.outputs.code }}
+    steps:
+      - id: v
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.0"; fi
+          IFS=. read -r MA MI PA <<< "$V"
+          echo "name=$V" >> "$GITHUB_OUTPUT"
+          echo "code=$(( ${MA:-1} * 10000 + ${MI:-0} * 100 + ${PA:-0} ))" >> "$GITHUB_OUTPUT"
+
+  mac:
+    needs: version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Electron
+        working-directory: apps/desktop
+        run: npm ci
+      - name: Copy in the app's files
+        run: node tools/stage-web.mjs apps/desktop/web
+      - name: Build Whimsy.app (Apple Silicon and Intel)
+        working-directory: apps/desktop
+        run: >
+          npx @electron/packager . Whimsy
+          --platform=darwin --arch=universal
+          --icon=build/icon.icns
+          --app-bundle-id=io.github.yashj23.whimsy
+          --app-version=${{ needs.version.outputs.name }}
+          --app-category-type=public.app-category.lifestyle
+          --out=out --overwrite
+          --ignore='^/out' --ignore='^/build'
+      - name: Sign for local use
+        run: |
+          APP="apps/desktop/out/Whimsy-darwin-universal/Whimsy.app"
+          codesign --force --deep --sign - "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+      - name: Make the disk image
+        run: |
+          mkdir -p dmg
+          cp -R "apps/desktop/out/Whimsy-darwin-universal/Whimsy.app" dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname "Whimsy" -srcfolder dmg -ov -format UDZO "Whimsy-${{ needs.version.outputs.name }}.dmg"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: Whimsy-*.dmg
+
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install Capacitor and copy in the app's files
+        working-directory: apps/android
+        run: |
+          npm ci
+          npm run sync
+      - name: Load the signing key
+        env:
+          KEY: ${{ secrets.WHIMSY_KEYSTORE }}
+        run: |
+          if [ -n "$KEY" ]; then
+            echo "$KEY" | base64 -d > "$RUNNER_TEMP/whimsy.p12"
+            echo "WHIMSY_KEYSTORE_FILE=$RUNNER_TEMP/whimsy.p12" >> "$GITHUB_ENV"
+            echo "WHIMSY_KEYSTORE_PASSWORD=whimsy-android-release" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No WHIMSY_KEYSTORE secret, so this APK uses a temporary key. Future versions won't install over it."
+          fi
+      - name: Build the APK
+        working-directory: apps/android/android
+        env:
+          WHIMSY_VERSION_NAME: ${{ needs.version.outputs.name }}
+          WHIMSY_VERSION_CODE: ${{ needs.version.outputs.code }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Whimsy-${{ needs.version.outputs.name }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: Whimsy-*.apk
+
+  release:
+    needs: [version, mac, android]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Whimsy ${{ needs.version.outputs.name }}
+          files: dist/*
+          body: |
+            ### Mac
+            1. Download **Whimsy-${{ needs.version.outputs.name }}.dmg** and open it.
+            2. Drag **Whimsy** into **Applications**.
+            3. The first time only: open Whimsy from Applications. macOS will say it can't check the app. Go to **System Settings › Privacy & Security**, scroll down, click **Open Anyway**, then **Open**.
+
+            Works on Apple Silicon and Intel Macs.
+
+            ### Android
+            1. On your phone, download **Whimsy-${{ needs.version.outputs.name }}.apk**.
+            2. Open it. If asked, allow your browser or Files app to install unknown apps.
+            3. Tap **Install**.
+
+            iPhone can't install apps from files. On iPhone, open https://yashj-23.github.io/whimsy/ in Safari and use Share › Add to Home Screen.
+
+            Each device keeps its own journal. Use Settings › Back up and Restore to move it between devices.

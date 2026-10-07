@@ -1,0 +1,18 @@
+{
+  "appId": "io.github.yashj23.whimsy",
+  "appName": "Whimsy",
+  "webDir": "www",
+  "backgroundColor": "#FBEFEA",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "initialViewportFitValueHint": "cover",
+      "style": "LIGHT"
+    }
+  }
+}

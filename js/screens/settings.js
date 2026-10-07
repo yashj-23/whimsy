@@ -4,6 +4,7 @@ import * as act from '../actions.js';
 import { Toggle, Segmented, Pills, Sheet, ConfirmButton, useId } from '../ui.js';
 import { Icon } from '../icons.js';
 import { BackupButton } from '../backup-button.js';
+import { isNativeApp, isMacApp } from '../native.js';
 import { DECK } from '../deck.js';
 import {
   NEEDS, CATEGORIES, SNAGS, INTENTS, WEIRD, TIMES, SETTINGS, EFFORT, MAX_PINS, APP_VERSION,
@@ -243,7 +244,10 @@ export function Settings() {
       <${ConfirmButton} onConfirm=${act.wipeEverything} confirmLabel="Tap again to delete everything"><${Icon} name="trash" size=${18}/> Delete everything</${ConfirmButton}>
     </${Section}>
 
-    <${Section} title="Install Whimsy" id="sec-install">
+    ${isNativeApp ? html`<${Section} title="About" id="sec-install">
+      <p class="data-line"><${Icon} name="check" size=${18}/> You're using the Whimsy app for ${isMacApp ? 'Mac' : 'Android'}.</p>
+      <p class="muted fine">Whimsy ${APP_VERSION}. New versions are on the Releases page of github.com/yashj-23/whimsy.</p>
+    </${Section}>` : html`<${Section} title="Install Whimsy" id="sec-install">
       ${s.installed ? html`<p class="data-line"><${Icon} name="check" size=${18}/> You're using the installed app.</p>`
         : html`<p class="muted">Whimsy works best installed. It opens in its own window, works offline, and keeps its data separate from your browser.</p>`}
       <div class="install-grid">
@@ -252,7 +256,7 @@ export function Settings() {
         <div><h3><${Icon} name="phone" size=${18}/> Android</h3><p>In Chrome, open the menu, then Install app.</p></div>
       </div>
       <p class="muted fine">Whimsy ${APP_VERSION}</p>
-    </${Section}>
+    </${Section}>`}
 
     <${Sheet} open=${!!editing} onClose=${() => setEditing(null)} title=${editing && editing.id ? 'Edit card' : 'New card'} wide=${true}>
       ${editing && html`<${CardForm} initial=${editing} onDone=${() => setEditing(null)}/>`}
