@@ -1,10 +1,10 @@
 name: Build Mac and Android apps
 
-# Push a tag like v1.0.1 to build both apps and publish them on the Releases page.
-# "Run workflow" on the Actions tab builds them without publishing (download from the run).
+# Builds both apps whenever the app changes on main. When the version in
+# apps/desktop/package.json has no release yet, it publishes one (tag v<version>)
+# with the Mac disk images and the Android APK attached.
 on:
   push:
-    tags: ['v*']
     branches: [main]
     paths: ['apps/**', 'js/**', 'css/**', 'index.html', '.github/workflows/**']
   workflow_dispatch:
@@ -18,13 +18,23 @@ jobs:
     outputs:
       name: ${{ steps.v.outputs.name }}
       code: ${{ steps.v.outputs.code }}
+      publish: ${{ steps.v.outputs.publish }}
     steps:
+      - uses: actions/checkout@v4
       - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#v}"; else V="1.0.0"; fi
+          V=$(node -p "require('./apps/desktop/package.json').version")
           IFS=. read -r MA MI PA <<< "$V"
           echo "name=$V" >> "$GITHUB_OUTPUT"
           echo "code=$(( ${MA:-1} * 10000 + ${MI:-0} * 100 + ${PA:-0} ))" >> "$GITHUB_OUTPUT"
+          if gh release view "v$V" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Release v$V already exists; this run only builds."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
 
   mac:
     needs: version
@@ -117,7 +127,7 @@ jobs:
 
   release:
     needs: [version, mac, android]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: needs.version.outputs.publish == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -127,6 +137,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           name: Whimsy ${{ needs.version.outputs.name }}
+          tag_name: v${{ needs.version.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
           files: dist/*
           body: |
             ### Mac
